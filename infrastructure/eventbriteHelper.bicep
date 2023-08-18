@@ -22,5 +22,6 @@ module functionApp 'functionapp.bicep' = {
   params: {
     functionAppName: 'ebhelperfunctionapp'
     location: eventbriteHelperRG.location
+    storageAccountName: storage.outputs.storageAccountName
   }
 }
