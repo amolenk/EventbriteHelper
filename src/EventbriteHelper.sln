@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventbriteHelper.cli", "Eve
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventbriteHelper.cli.tests", "EventbriteHelper.cli.tests\EventbriteHelper.cli.tests.csproj", "{0EB4DD4E-1040-4515-9099-F39F6904F68B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventbriteHelper.infrastructure", "EventbriteHelper.infrastructure\EventbriteHelper.infrastructure.csproj", "{DB1485FF-D853-41AB-9558-A853529B85A1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{0EB4DD4E-1040-4515-9099-F39F6904F68B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0EB4DD4E-1040-4515-9099-F39F6904F68B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0EB4DD4E-1040-4515-9099-F39F6904F68B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DB1485FF-D853-41AB-9558-A853529B85A1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DB1485FF-D853-41AB-9558-A853529B85A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DB1485FF-D853-41AB-9558-A853529B85A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DB1485FF-D853-41AB-9558-A853529B85A1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

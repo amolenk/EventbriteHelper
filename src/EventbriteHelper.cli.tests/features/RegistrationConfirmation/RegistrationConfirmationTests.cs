@@ -1,20 +1,28 @@
+using NSubstitute;
+
 namespace EventbriteHelper.cli.tests.features.RegistrationConfirmation;
 
 [TestClass]
 public class RegistrationConfirmationTests
 {
     [TestMethod]
-    public void RegistrationConfirmation_should_run_on_right_param()
+    public async Task RegistrationConfirmation_should_send_email_to_expectedAttendees()
     {
         // arrange
-        string[] args = new string[1]
-        {
-            "start-confirmation"
-        };
+        var someEventbriteAPIMock = Substitute.For<IEventbriteAPI>();
+
+        var attendeeService = new AttendeeService(someEventbriteAPIMock);
+
+        var sut = new RegistrationConfirmationHandler(attendeeService);
 
         // act
-        Program.Main(args);
+        await sut.SendRegistrationConfirmation();
 
         // assert
+        
     }
+
+    // GET ALL ATTENDEES
+    // STORE IN DB
+    // SEND EMAIL WITH UNIQUE LINK
 }
