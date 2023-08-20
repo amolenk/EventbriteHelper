@@ -1,11 +1,9 @@
-﻿// See https://aka.ms/new-console-template for more information
+﻿namespace EventbriteHelper.cli;
 
-var arguments = args;
-
-if (arguments.Any())
+public class Program
 {
-    return 0;
-}
-else {
-    return 1;
+    public static void Main(string[] args)
+    {
+        Console.WriteLine("Hello World!");
+    }
 }
