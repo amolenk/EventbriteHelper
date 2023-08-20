@@ -7,5 +7,15 @@
     "ghcr.io/jlaundry/devcontainer-features/azure-functions-core-tools": {
       "version": "latest"
     },
-  }
+},
+"customizations": {
+	"vscode": {
+		"extensions": [
+			"ms-dotnettools.csharp",
+			"ms-azuretools.vscode-bicep",
+			"GitHub.copilot-chat",
+			"GitHub.copilot"
+		]
+	}
+}
 }
