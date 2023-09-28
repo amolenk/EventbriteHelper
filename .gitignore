@@ -403,3 +403,5 @@ FodyWeavers.xsd
 /src/EventbriteHelper.functions/Properties/ServiceDependencies/eventbritedummy - Zip Deploy/profile.arm.json
 /src/EventbriteHelper.functions/Properties/ServiceDependencies/eventbritedummy - Zip Deploy/storage1.arm.json
 /src/EventbriteHelper.functions/Properties/serviceDependencies.json
+/src/EventbriteHelper.functions/Properties/serviceDependencies.eventbritedummy - Zip Deploy.json
+/src/EventbriteHelper.functions/Properties/serviceDependencies.local.json
