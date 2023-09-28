@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EventbriteHelper.cli\EventbriteHelper.cli.csproj" />
+    <ProjectReference Include="..\EventbriteHelper.infrastructure\EventbriteHelper.infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
