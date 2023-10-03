@@ -2,7 +2,7 @@
 
 namespace EventbriteHelper.infrastructure.Api.Models.Event
 {
-    public class EventCapacity
+    public class TicketClassObject
     {
         [JsonProperty("capacity")]
         public int Capacity { get; set; }

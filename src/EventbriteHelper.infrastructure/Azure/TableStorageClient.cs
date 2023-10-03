@@ -74,9 +74,9 @@ namespace EventbriteHelper.infrastructure.Azure
             return attendingAttendees;
         }
 
-        public TicketTypeStatus GetTicketTypeStatus(string ticketType)
+        public TicketTypeInformation GetTicketTypeStatus(string ticketType)
         {
-            var tableClient = GetClient(ticketType, "status");
+            var tableClient = GetClient(ticketType, "information");
             var result = tableClient
                 .Query<TableEntity>(entity =>
                     entity.PartitionKey == _eventName &&
@@ -94,27 +94,63 @@ namespace EventbriteHelper.infrastructure.Azure
                 throw new FormatException($"Something went wrong with trying to change the status for {_eventName} ({_eventYear})");
             }
 
-            var ticketTypeStatus = new TicketTypeStatus
+            var ticketTypeInformation = new TicketTypeInformation
             {
                 Status = currentStatus
             };
 
-            return ticketTypeStatus;
+            return ticketTypeInformation;
         }
 
         public void SetTicketTypeStatus(Status status, string ticketType)
         {
-            var currentStatus = GetTicketTypeStatus(ticketType);
-            currentStatus.Status = status;
+            var ticketTypeInformation = GetTicketTypeStatus(ticketType);
+            ticketTypeInformation.Status = status;
 
             var tableEntity = new TableEntity(_eventName, _eventYear)
             {
-                    { nameof(currentStatus.Status), currentStatus.Status.ToString() },
+                    { nameof(ticketTypeInformation.Status), ticketTypeInformation.Status.ToString() },
             };
 
-            var tableClient = GetClient(ticketType, "status");
+            var tableClient = GetClient(ticketType, "information");
             tableClient.UpsertEntity(tableEntity);
-            _logger.LogInformation($"Updated status for {ticketType}: {currentStatus.Status}");
+            _logger.LogInformation($"Updated status in {tableClient.Name}: {ticketTypeInformation.Status}");
+        }
+
+        public void SetOriginalCapacity(string ticketType, int originalCapacity)
+        {
+            var tableClient = GetClient(ticketType, "information");
+            var result = tableClient
+                .Query<TableEntity>(entity =>
+                    entity.PartitionKey == _eventName &&
+                    entity.RowKey == _eventYear);
+
+            var tableEntity = new TableEntity(_eventName, _eventYear)
+                {
+                    { "OriginalCapacity", originalCapacity.ToString() },
+                };
+
+            tableClient.UpsertEntity(tableEntity);
+        }
+
+        public int GetOriginalCapacity(string ticketType)
+        {
+            var tableClient = GetClient(ticketType, "information");
+            var result = tableClient
+                .Query<TableEntity>(entity =>
+                    entity.PartitionKey == _eventName &&
+                    entity.RowKey == _eventYear);
+
+            var originalCapacity = result.First().GetString("OriginalCapacity");
+
+            if (int.TryParse(originalCapacity, out int capacity))
+            {
+                return capacity;
+            }
+            else
+            {
+                throw new FormatException($"Something went wrong with getting the original capacity from {tableClient.Name}");
+            }
         }
 
         private TableClient GetClient(string ticketType, string tableType)
@@ -129,7 +165,7 @@ namespace EventbriteHelper.infrastructure.Azure
 
             tableClient.CreateIfNotExists();
 
-            if (tableType == "status")
+            if (tableType == "information")
             {
                 var result = tableClient
                 .Query<TableEntity>(entity =>
@@ -138,15 +174,16 @@ namespace EventbriteHelper.infrastructure.Azure
 
                 if (result == null || !result.Any())
                 {
-                    var status = new TicketTypeStatus { Status = Status.Open };
+                    var information = new TicketTypeInformation { Status = Status.Open };
 
                     var tableEntity = new TableEntity(_eventName, _eventYear)
-                {
-                    { nameof(status.Status), status.Status.ToString() },
-                };
+                    {
+                        { nameof(information.Status), information.Status.ToString() },
+                        { nameof(information.OriginalCapacity), string.Empty },
+                    };
 
                     tableClient.UpsertEntity(tableEntity);
-                    _logger.LogInformation($"Added status for {ticketType}: {status.Status}");
+                    _logger.LogInformation($"Created row in {tableName} - Status: {information.Status}, Original Capacity: {information.OriginalCapacity}");
                 }
             }
 

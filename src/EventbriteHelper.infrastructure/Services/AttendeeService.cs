@@ -41,7 +41,7 @@ namespace EventbriteHelper.infrastructure.Services
             _tableStorageClient.AddOrUpdateAttendee(attendeeInformation, attendee.TicketClassName);
         }
 
-        public async ValueTask SyncAttendeesAsync(List<Attendee> attendees, string ticketType)
+        public async ValueTask<List<string>> SyncAttendeesAsync(List<Attendee> attendees, string ticketType)
         {
             foreach (var attendee in attendees)
             {
@@ -50,10 +50,25 @@ namespace EventbriteHelper.infrastructure.Services
 
             var eventInformation = await _eventbriteClient.GetInformation<Event>("?expand=ticket_classes");
 
-            var ticketClass = eventInformation.TicketClasses.First(x => x.Name == ticketType);
+            if (ticketType == "All")
+            {
+                foreach (var tClass in eventInformation.TicketClasses)
+                {
+                    var ticketClass = eventInformation.TicketClasses.First(x => x.Name == tClass.Name);
 
-            var quantityDifference = ticketClass.QuantityTotal - ticketClass.QuantitySold;
-            AdjustTicketTypeStatusBasedOnQuantityDifference(quantityDifference, ticketType);
+                    var quantityDifference = ticketClass.Capacity - ticketClass.QuantitySold;
+                    AdjustTicketTypeStatusBasedOnQuantityDifference(quantityDifference, ticketClass.Name);
+                }
+            }
+            else
+            {
+                var ticketClass = eventInformation.TicketClasses.First(x => x.Name == ticketType);
+
+                var quantityDifference = ticketClass.Capacity - ticketClass.QuantitySold;
+                AdjustTicketTypeStatusBasedOnQuantityDifference(quantityDifference, ticketType);
+            }
+
+            return eventInformation.TicketClasses.Select(t => t.Name).ToList();
         }
 
         public async ValueTask<string> ProcessUpdatedAttendeeAsync(string attendeeId)
@@ -74,22 +89,29 @@ namespace EventbriteHelper.infrastructure.Services
 
             var ticketClass = eventInformation.TicketClasses.First(x => x.Name == ticketType);
 
-            var updatedEvent = new Event();
+            Console.WriteLine($"Before - Capacity: {ticketClass.Capacity}, Tickets sold: {ticketClass.QuantitySold}/{ticketClass.Capacity}");
 
             if (capacity == 0)
             {
-                updatedEvent = await AdjustTicketTypeCapacityAsync(ticketType, ticketClass.QuantityTotal);
+                var originalCapacity = _tableStorageClient.GetOriginalCapacity(ticketType);
+                ticketClass = await AdjustTicketTypeCapacityAsync(ticketClass.Id, originalCapacity);
             }
             else
             {
-                updatedEvent = await AdjustTicketTypeCapacityAsync(ticketType, capacity);
+                ticketClass = await AdjustTicketTypeCapacityAsync(ticketClass.Id, capacity);
             }
 
-            var quantityDifference = ticketClass.QuantityTotal - ticketClass.QuantitySold;
+            var quantityDifference = ticketClass.Capacity - ticketClass.QuantitySold;
             AdjustTicketTypeStatusBasedOnQuantityDifference(quantityDifference, ticketType);
 
-            Console.WriteLine($"Before - Capacity: {eventInformation.Capacity}, Tickets sold: {ticketClass.QuantitySold}/{ticketClass.QuantityTotal}");
-            Console.WriteLine($"Capacity normalized - Capacity: {updatedEvent.Capacity}, Tickets sold: {ticketClass.QuantitySold}/{ticketClass.QuantityTotal}");
+            Console.WriteLine($"Capacity set for {ticketType} - Capacity: {ticketClass.Capacity}, Tickets sold: {ticketClass.QuantitySold}/{ticketClass.Capacity}");
+        }
+
+        public void SetOriginalCapacity(string ticketType, int originalCapacity)
+        {
+            _tableStorageClient.SetOriginalCapacity(ticketType, originalCapacity);
+
+            Console.WriteLine($"Original capacity set for {ticketType}: {originalCapacity}");
         }
 
         public async Task<IEnumerable<string>> RetrieveTicketTypes()
@@ -106,16 +128,16 @@ namespace EventbriteHelper.infrastructure.Services
             return ticketTypes;
         }
 
-        private async ValueTask<Event> AdjustTicketTypeCapacityAsync(string ticketType, int capacity)
+        private async ValueTask<TicketClass> AdjustTicketTypeCapacityAsync(string ticketTypeId, int capacity)
         {
-            return await _eventbriteClient.AdjustTicketTypeCapacity(ticketType, capacity);
+            return await _eventbriteClient.AdjustTicketTypeCapacity(ticketTypeId, capacity);
         }
 
         private void AdjustTicketTypeStatusBasedOnQuantityDifference(int quantityDifference, string ticketType)
         {
-            if (quantityDifference == 0)
+            if (quantityDifference <= 0)
             {
-                _tableStorageClient.SetTicketTypeStatus(Status.Vol, ticketType);
+                _tableStorageClient.SetTicketTypeStatus(Status.SoldOut, ticketType);
             }
             else
             {
@@ -131,21 +153,21 @@ namespace EventbriteHelper.infrastructure.Services
 
             if (attendeeStatus == "Attending")
             {
-                if (ticketClass.QuantitySold == ticketClass.QuantityTotal)
+                if (ticketClass.QuantitySold == ticketClass.Capacity)
                 {
-                    _tableStorageClient.SetTicketTypeStatus(Status.Vol, ticketType);
+                    _tableStorageClient.SetTicketTypeStatus(Status.SoldOut, ticketType);
 
-                    if (eventInformation.Capacity < ticketClass.QuantityTotal)
+                    if (ticketClass.Capacity < ticketClass.Capacity)
                     {
-                        await _eventbriteClient.AdjustTicketTypeCapacity(ticketType, eventInformation.Capacity + 1);
+                        await _eventbriteClient.AdjustTicketTypeCapacity(ticketClass.Id, ticketClass.Capacity + 1);
                     }
 
                 }
                 else
                 {
-                    if (eventInformation.Capacity < ticketClass.QuantitySold)
+                    if (ticketClass.Capacity < ticketClass.QuantitySold)
                     {
-                        await _eventbriteClient.AdjustTicketTypeCapacity(ticketType, ticketClass.QuantitySold);
+                        await _eventbriteClient.AdjustTicketTypeCapacity(ticketClass.Id, ticketClass.QuantitySold);
                     }
                 }
 
@@ -156,11 +178,11 @@ namespace EventbriteHelper.infrastructure.Services
 
                 if (currentStatus != Status.Open)
                 {
-                    await _eventbriteClient.AdjustTicketTypeCapacity(ticketType, ticketClass.QuantitySold);
+                    await _eventbriteClient.AdjustTicketTypeCapacity(ticketClass.Id, ticketClass.QuantitySold);
 
-                    if (currentStatus == Status.Vol)
+                    if (currentStatus == Status.SoldOut)
                     {
-                        _tableStorageClient.SetTicketTypeStatus(Status.Aangepast, ticketType);
+                        _tableStorageClient.SetTicketTypeStatus(Status.Adjusted, ticketType);
                     }
                 }
             }

@@ -52,8 +52,7 @@ public class EventbriteClient : IEventbriteClient
         }
     }
 
-    // TO DO: Adjust the correct capacity for ticket type x
-    public async Task<Event> AdjustTicketTypeCapacity(string ticketType, int newCapacity)
+    public async Task<TicketClass> AdjustTicketTypeCapacity(string ticketClassId, int newCapacity)
     {
         var client = new HttpClient
         {
@@ -61,10 +60,10 @@ public class EventbriteClient : IEventbriteClient
         };
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
 
-        var request = new HttpRequestMessage(HttpMethod.Post, $"events/{_eventId}/");
+        var request = new HttpRequestMessage(HttpMethod.Post, $"events/{_eventId}/ticket_classes/{ticketClassId}/");
 
-        var capacityUpdate = new CapacityUpdate(newCapacity);
-        request.Content = new StringContent(JsonConvert.SerializeObject(capacityUpdate), Encoding.UTF8, "application/json");
+        var capacityUpdate = new TicketClassUpdate(newCapacity);
+        request.Content = new StringContent(JsonConvert.SerializeObject(capacityUpdate), Encoding.UTF8, "application/json"); ;
 
         var response = await client.SendAsync(request);
         response.EnsureSuccessStatusCode();
@@ -73,7 +72,7 @@ public class EventbriteClient : IEventbriteClient
 
         try
         {
-            return JsonConvert.DeserializeObject<Event>(content);
+            return JsonConvert.DeserializeObject<TicketClass>(content);
         }
         catch (Exception ex)
         {
